@@ -1,0 +1,1 @@
+dofile(minetest.get_modpath("energyflow").."/generators.lua")
