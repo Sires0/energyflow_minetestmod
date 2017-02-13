@@ -1,15 +1,21 @@
+-- Coal energy = how many energy the coal generates
+-- Energy tick = how many energy per second is generated from the fuel
+coal_energy = 100
+energy_tick = 20
 
-local function factive_formspec(percent, energy) 
+-- Function to get the formspec when he is active
+local function get_active_formspec(percent, energy) 
 	local formspec =
 		"size[8,9]"..
 		"label[3.5,0;Energy: " .. energy .. "]"..
-		"list[context;batt;3.5,1;1,1;]"..
+		"list[context;batt;3.5,1;1,1;]".. -- Battery list(I'll make a battery item) 
 		"image[3.75,2.25;0.5,0.5;energy_bg.png^[lowpart:" .. (100 - percent) .. ":energy_fg.png]]"..
-		"list[context;fuel;3.5,3;1,1;]"..
+		"list[context;fuel;3.5,3;1,1;]".. -- In the fuel list you put the coal there
 		"list[current_player;main;0,5;8,4;]"
 	return formspec
 end
-local function inactive_formspec(energy)
+-- Function to get the formspec when he isn't active
+local function get_inactive_formspec(energy)
 	local formspec =
 		"size[8,9]"..
 		"label[3.5,0;Energy: " .. energy .. "]"..
@@ -19,6 +25,7 @@ local function inactive_formspec(energy)
 		"list[current_player;main;0,5;8,4;]"
 	return formspec
 end
+-- Function to allow only coal in the fuel list, and allow only one item in the batt list
 local function allow_metadata_inventory_put(pos, listname, index, stack, player)
 	meta = minetest.get_meta(pos)
 	inv = meta:get_inventory()
@@ -34,17 +41,32 @@ local function allow_metadata_inventory_put(pos, listname, index, stack, player)
 		return 0
 	end
 end
-
+-- Function to allow move itens
 local function allow_metadata_inventory_move(pos, from_list, from_index, to_list, to_index, count, player)
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
 	local stack = inv:get_stack(from_list, from_index)
 	return allow_metadata_inventory_put(pos, to_list, to_index, stack, player)
 end
-
+-- Function to allow take itens
 local function allow_metadata_inventory_take(pos, listname, index, stack, player)
 	return stack:get_count()
 end
+-- Function to start the NodeTimer
+local function energyproduct(pos, index)
+	local meta = minetest.get_meta(pos)
+	local fuel = meta:get_int("fuel")
+	local timer = meta:get_int("timer")
+	local timerref = minetest.get_node_timer(pos)
+	local inv = meta:get_inventory()
+	local fuel_stack = inv:get_list("fuel", index)
+	if not(fuel > 0) then
+		-- Here I need help to take one coal from the inventory
+	end
+	timerref:set(1, timer)
+	minetest.set_int("fuel", fuel + coal_energy)
+end
+-- Register the generator
 minetest.register_node("energyflow:fuel_gen", {
 	tiles = {
 	"mkb.png",
@@ -56,18 +78,41 @@ minetest.register_node("energyflow:fuel_gen", {
 	},
 	paramtype2 = "facedir",
 	description = "Fuel Generator",
-	groups = {oddly_breakable_by_hand = 3},
+	groups = {oddly_breakable_by_hand = 3}, -- This group will be changed after
 	on_construct = function(pos)
-		meta = minetest.get_meta(pos)
-		meta:set_float("timer", 0)
+		local meta = minetest.get_meta(pos)
 		meta:set_int("fuel", 0)
 		meta:set_int("energystorage", 0)
-		meta:set_string("formspec", inactive_formspec(0))
+
+		meta:set_string("formspec", get_inactive_formspec(0))
+
 		inv = meta:get_inventory()
 		inv:set_size("batt", 1)
 		inv:set_size("fuel", 1)
 	end,
+
+	on_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
+		local meta = minetest.get_meta(pos)
+		local inv = meta:get_inventory()
+		local stack = inv:get_stack(from_list, from_index)
+		if to_list == "fuel" then
+			energyproduct(pos, to_index)
+		end
+	end,
+
 	allow_metadata_inventory_put = allow_metadata_inventory_put,
 	allow_metadata_inventory_move = allow_metadata_inventory_move,
 	allow_metadata_inventory_take = allow_metadata_inventory_take,
+
+	on_timer = function(pos, elapsed)
+		local meta = minetest.get_meta(pos)
+		local fuel = meta:get_int("fuel")
+		local timer = meta:get_int("timer")
+		local energystorage = meta:get_int("energystorage")
+		local timerref = minetest.get_node_timer(pos)
+		meta:set_int("fuel", fuel - energy_tick)
+		meta:set_int("energystorage", energystorage + energy_tick)
+		meta:set_meta("timer", elapsed)
+		print(energystorage .. " " .. fuel .. " " .. timer .. " :)")
+	end,
 })
