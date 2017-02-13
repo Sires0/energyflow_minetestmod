@@ -9,7 +9,7 @@ local function get_active_formspec(percent, energy)
 		"size[8,9]"..
 		"label[3.5,0;Energy: " .. energy .. "]"..
 		"list[context;batt;3.5,1;1,1;]".. -- Battery list(I'll make a battery item) 
-		"image[3.75,2.25;0.5,0.5;energy_fg.png^[lowpart:" .. (100 - percent) .. ":energy_bg.png]]".. -- I did a big codekluge here by the line 123, that I don't know what put in the percent arg :)
+		"image[3.75,2.25;0.5,0.5;energy_bg.png^[lowpart:" .. percent .. ":energy_fg.png]]".. -- I did a big codekluge here by the line 123, that I don't know what put in the percent arg :)
 		"list[context;fuel;3.5,3;1,1;]".. -- In the fuel list you put the coal there
 		"list[current_player;main;0,5;8,4;]"
 	return formspec
@@ -121,15 +121,13 @@ minetest.register_node("energyflow:fuel_gen", {
 		if fuel == 0 then
 			timerref:stop()
 			meta:set_string("formspec", get_inactive_formspec(energystorage))
-			print(energystorage .. " " .. fuel .. " :)")
 			if coal then
 				energyproduct(pos)
 			end
 		else
 			meta:set_int("fuel", fuel - energy_tick)
 			meta:set_int("energystorage", energystorage + energy_tick)
-			meta:set_string("formspec", get_active_formspec((fuel/coal_energy)*100, energystorage))
-			print(energystorage .. " " .. fuel .. " :)")
+			meta:set_string("formspec", get_active_formspec((fuel / coal_energy)*100, energystorage))
 			timerref:start(1)
 		end
 	end,
