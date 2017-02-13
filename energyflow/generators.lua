@@ -9,7 +9,7 @@ local function get_active_formspec(percent, energy)
 		"size[8,9]"..
 		"label[3.5,0;Energy: " .. energy .. "]"..
 		"list[context;batt;3.5,1;1,1;]".. -- Battery list(I'll make a battery item) 
-		"image[3.75,2.25;0.5,0.5;energy_bg.png^[lowpart:" .. (100 - percent) .. ":energy_fg.png]]"..
+		"image[3.75,2.25;0.5,0.5;energy_fg.png^[lowpart:" .. (100 - percent) .. ":energy_bg.png]]".. -- I did a big codekluge here by the line 123, that I don't know what put in the percent arg :)
 		"list[context;fuel;3.5,3;1,1;]".. -- In the fuel list you put the coal there
 		"list[current_player;main;0,5;8,4;]"
 	return formspec
@@ -53,18 +53,21 @@ local function allow_metadata_inventory_take(pos, listname, index, stack, player
 	return stack:get_count()
 end
 -- Function to start the NodeTimer
-local function energyproduct(pos, index)
+local function energyproduct(pos)
 	local meta = minetest.get_meta(pos)
+	local energystorage = meta:get_int("energystorage")
 	local fuel = meta:get_int("fuel")
-	local timer = meta:get_int("timer")
 	local timerref = minetest.get_node_timer(pos)
 	local inv = meta:get_inventory()
-	local fuel_stack = inv:get_list("fuel", index)
-	if not(fuel > 0) then
-		-- Here I need help to take one coal from the inventory
+	local fuel_stack = inv:get_stack("fuel", 1) -- 1 is the index
+	if not(energystorage + coal_energy > 1000) then
+		if fuel_stack:get_count() ~= 0 then
+			fuel_stack:set_count(fuel_stack:get_count() - 1)
+			inv:set_stack("fuel", 1, fuel_stack)
+		end
+		timerref:start(1)
+		meta:set_int("fuel", fuel + coal_energy)
 	end
-	timerref:set(1, timer)
-	minetest.set_int("fuel", fuel + coal_energy)
 end
 -- Register the generator
 minetest.register_node("energyflow:fuel_gen", {
@@ -96,10 +99,14 @@ minetest.register_node("energyflow:fuel_gen", {
 		local inv = meta:get_inventory()
 		local stack = inv:get_stack(from_list, from_index)
 		if to_list == "fuel" then
-			energyproduct(pos, to_index)
+			energyproduct(pos)
 		end
 	end,
-
+	on_metadata_inventory_put = function(pos, listname, index, stack, player)
+		if listname == "fuel" then
+			energyproduct(pos)
+		end
+	end,
 	allow_metadata_inventory_put = allow_metadata_inventory_put,
 	allow_metadata_inventory_move = allow_metadata_inventory_move,
 	allow_metadata_inventory_take = allow_metadata_inventory_take,
@@ -107,12 +114,23 @@ minetest.register_node("energyflow:fuel_gen", {
 	on_timer = function(pos, elapsed)
 		local meta = minetest.get_meta(pos)
 		local fuel = meta:get_int("fuel")
-		local timer = meta:get_int("timer")
 		local energystorage = meta:get_int("energystorage")
 		local timerref = minetest.get_node_timer(pos)
-		meta:set_int("fuel", fuel - energy_tick)
-		meta:set_int("energystorage", energystorage + energy_tick)
-		meta:set_meta("timer", elapsed)
-		print(energystorage .. " " .. fuel .. " " .. timer .. " :)")
+		local inv = meta:get_inventory()
+		local coal = inv:contains_item("fuel", "default:coal_lump")
+		if fuel == 0 then
+			timerref:stop()
+			meta:set_string("formspec", get_inactive_formspec(energystorage))
+			print(energystorage .. " " .. fuel .. " :)")
+			if coal then
+				energyproduct(pos)
+			end
+		else
+			meta:set_int("fuel", fuel - energy_tick)
+			meta:set_int("energystorage", energystorage + energy_tick)
+			meta:set_string("formspec", get_active_formspec((fuel/coal_energy)*100, energystorage))
+			print(energystorage .. " " .. fuel .. " :)")
+			timerref:start(1)
+		end
 	end,
 })
