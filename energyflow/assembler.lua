@@ -1,7 +1,5 @@
-assembler_tick = 10 -- Sorry idk how to explai that
-
 local recipes = {
-	{input = "default:coal_lump", output = "default:stone 1", time = 10,} -- {input then the output then the time to make}
+	{input = "default:coal_lump", output = "default:stonebrick", time = 10,} -- {input then the output then the time to make}
 }
 
 local inactive_formspec = "size[8,7]"         ..
@@ -63,7 +61,7 @@ local function do_that(pos)
 			inv:set_stack("input", 1, stack)
 		end
 	end
-	timerref:start(time / assembler_tick)
+	timerref:start(time / 10)
 end
 minetest.register_node("energyflow:assembler", {
 	description = "Assembler",
@@ -109,17 +107,18 @@ minetest.register_node("energyflow:assembler", {
 		local time = meta:get_int("time")
 		local timerref = minetest.get_node_timer(pos)
 		print(done)
-		if done == assembler_tick then
+		if done == 10 then
 			stack:set_name(output)
+			stack:set_count(1)
 			print(output)
-			inv:set_stack("output", 1, stack) -- AAAA why that doesn't works
 			meta:set_string("formspec", inactive_formspec)
+			inv:set_stack("output", 1, stack) -- AAAA why that works just when I try by the second time
 			meta:set_float("done", 0.0)
 			timerref:stop()
 		else
-			meta:set_int("done", done + time / assembler_tick)
+			meta:set_int("done", done + time / 10)
 			meta:set_string("formspec", get_active_formspec((done / time) * 100))
-			timerref:start(time / assembler_tick)
+			timerref:start(time / 10)
 		end
 	end
 })
