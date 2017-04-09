@@ -9,6 +9,6 @@ To do:
 I'm working now in the battery.
 
 __Credits__:
-*AiTechEye
 
-*Sires
+* AiTechEye
+* Sires
