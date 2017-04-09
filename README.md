@@ -10,4 +10,5 @@ I'm working now in the battery.
 
 __Credits__:
 *AiTechEye
-*Sires                          _lol_
+
+*Sires
