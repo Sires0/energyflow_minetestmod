@@ -102,17 +102,13 @@ minetest.register_node("energyflow:assembler", {
 		local meta = minetest.get_meta(pos)
 		local inv = meta:get_inventory()
 		local done = meta:get_int("done")
-		local stack = inv:get_stack("output", 1)
 		local output = meta:get_string("output")
 		local time = meta:get_int("time")
 		local timerref = minetest.get_node_timer(pos)
 		print(done)
 		if done == 10 then
-			stack:set_name(output)
-			stack:set_count(1)
-			print(output)
 			meta:set_string("formspec", inactive_formspec)
-			inv:set_stack("output", 1, stack) -- AAAA why that works just when I try by the second time
+			inv:set_stack("output", 1, output) -- AAAA why that works just when I try by the second time
 			meta:set_float("done", 0.0)
 			timerref:stop()
 		else
