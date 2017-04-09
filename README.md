@@ -6,4 +6,8 @@ To do:
 - More generators...
 - More machines...
 
-I'm working now in the assembler, that will be a block to craft other machines.
+I'm working now in the battery.
+
+__Credits__:
+*AiTechEye
+*Sires                          _lol_
