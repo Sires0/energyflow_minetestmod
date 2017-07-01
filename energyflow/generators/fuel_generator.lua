@@ -1,7 +1,7 @@
 -- Coal energy = how many energy the coal generates
 -- Energy tick = how many energy per second is generated from the fuel
 coal_energy = 100
-energy_tick = 20
+energy_tick = 5
 
 -- Function to get the formspec when he is active
 local function get_active_formspec(percent, energy) 
@@ -99,11 +99,13 @@ minetest.register_node("energyflow:fuel_gen", {
 		local inv = meta:get_inventory()
 		local stack = inv:get_stack(from_list, from_index)
 		if to_list == "fuel" then
-			energyproduct(pos)
+			if meta:get_int("fuel") == 0 then
+				energyproduct(pos)
+			end
 		end
 	end,
 	on_metadata_inventory_put = function(pos, listname, index, stack, player)
-		if listname == "fuel" then
+		if meta:get_int("fuel") == 0 then
 			energyproduct(pos)
 		end
 	end,
