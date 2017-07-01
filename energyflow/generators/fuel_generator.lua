@@ -1,6 +1,7 @@
 -- Coal energy = how many energy the coal generates
 -- Energy tick = how many energy per second is generated from the fuel
 coal_energy = 100
+coal_block_energy = 900
 energy_tick = 5
 
 -- Function to get the formspec when he is active
@@ -27,10 +28,12 @@ local function get_inactive_formspec(energy)
 end
 -- Function to allow only coal in the fuel list, and allow only one item in the batt list
 local function allow_metadata_inventory_put(pos, listname, index, stack, player)
-	meta = minetest.get_meta(pos)
-	inv = meta:get_inventory()
+	local meta = minetest.get_meta(pos)
+	local inv = meta:get_inventory()
 	if listname == "fuel" then
 		if stack:get_name() == "default:coal_lump" then
+			return stack:get_count()
+		elseif stack:get_name() == "default:coalblock" then
 			return stack:get_count()
 		else
 			return 0
@@ -60,13 +63,23 @@ local function energyproduct(pos)
 	local timerref = minetest.get_node_timer(pos)
 	local inv = meta:get_inventory()
 	local fuel_stack = inv:get_stack("fuel", 1) -- 1 is the index
-	if not(energystorage + coal_energy > 1000) then
+	if not(energystorage + coal_energy > 1000) and fuel_stack:get_name() == "default:coal_lump" then
+		meta:set_string("fueltype", "coallump")
 		if fuel_stack:get_count() ~= 0 then
 			fuel_stack:set_count(fuel_stack:get_count() - 1)
 			inv:set_stack("fuel", 1, fuel_stack)
 		end
 		timerref:start(1)
 		meta:set_int("fuel", fuel + coal_energy)
+	end
+	if not(energystorage + coal_block_energy > 1000) and fuel_stack:get_name() == "default:coalblock" then
+		meta:set_string("fueltype", "coalblock")
+		if fuel_stack:get_count() ~= 0 then
+			fuel_stack:set_count(fuel_stack:get_count() - 1)
+			inv:set_stack("fuel", 1, fuel_stack)
+		end
+		timerref:start(1)
+		meta:set_int("fuel", fuel + coal_block_energy)
 	end
 end
 -- Register the generator
@@ -82,12 +95,14 @@ minetest.register_node("energyflow:fuel_gen", {
 	paramtype2 = "facedir",
 	description = "Fuel Generator",
 	groups = {oddly_breakable_by_hand = 3},
+	stack_max = 1,
 	on_construct = function(pos)
 		local meta = minetest.get_meta(pos)
 		meta:set_int("fuel", 0)
 		meta:set_int("energystorage", 0)
 
 		meta:set_string("formspec", get_inactive_formspec(0))
+		meta:set_string("fueltype", "")
 
 		inv = meta:get_inventory()
 		inv:set_size("batt", 1)
@@ -105,6 +120,7 @@ minetest.register_node("energyflow:fuel_gen", {
 		end
 	end,
 	on_metadata_inventory_put = function(pos, listname, index, stack, player)
+		local meta = minetest.get_meta(pos)
 		if meta:get_int("fuel") == 0 then
 			energyproduct(pos)
 		end
@@ -129,7 +145,11 @@ minetest.register_node("energyflow:fuel_gen", {
 		else
 			meta:set_int("fuel", fuel - energy_tick)
 			meta:set_int("energystorage", energystorage + energy_tick)
-			meta:set_string("formspec", get_active_formspec((fuel / coal_energy)*100, energystorage))
+			if meta:get_string("fueltype") == "coallump" then
+				meta:set_string("formspec", get_active_formspec((fuel / coal_energy) * 100, energystorage))
+			elseif meta:get_string("fueltype") == "coalblock" then
+				meta:set_string("formspec", get_active_formspec((fuel / coal_block_energy) * 100, energystorage))
+			end
 			timerref:start(1)
 		end
 	end,
