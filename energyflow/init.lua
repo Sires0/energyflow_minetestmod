@@ -1,1 +1,5 @@
-dofile(minetest.get_modpath("energyflow").."/generators.lua")
+local modpath = minetest.get_modpath("energyflow")
+print(path)
+dofile(modpath .. "/machines/init.lua")
+dofile(modpath .. "/generators/init.lua")
+dofile(modpath .. "/batteries/init.lua")
